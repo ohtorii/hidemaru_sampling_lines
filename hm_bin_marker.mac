@@ -1,0 +1,87 @@
+/*N行毎にカラーマーカーで色をつける。
+
+（動作）
+カーソルのある位置から行末まで
+*/
+
+//////////////////////////////////////////////////////////////////////////////
+//	ユーザーカスタマイズ
+//////////////////////////////////////////////////////////////////////////////
+#g_color_string			= 0x00ff00;			//文字色
+#g_color_bg				= 0xff00ff;			//背景色
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+//	メイン処理
+//////////////////////////////////////////////////////////////////////////////
+$g_ini_abs_filename		= currentmacrodirectory+"\\hm_bin_marker.ini";
+$g_ini_section			= "dialog";
+$g_ini_key				= "step";
+#g_ini_default_value 	= 5;
+#g_ini_min_value 		= 2;
+
+#old_x=x;
+#old_y=y;
+call Main;
+moveto #old_x,#old_y;
+endmacro;
+
+
+Main:
+	call IniRead;
+	##value = ##return;
+
+	$$interval_str=input("マーカで色をつける行の間隔を入力して下さい。（数値は" + str(#g_ini_min_value) + "以上で入力して下さい）", str(##value));
+	if("" == $$interval_str){
+		//ESC
+		return false;
+	}
+
+	##interval_int=val($$interval_str);
+	if(##interval_int < #g_ini_min_value){
+		message("間隔は" + str(#g_ini_min_value) + "以上の数字を指定して下さい。\n" +
+				"\""+$$interval_str + "\" が指定されました。"
+		);
+		return false;
+	}
+	call IniWrite ##interval_int;
+
+	disabledraw;
+	golinetop2;
+	if(!result){
+		return false;
+	}
+	selectline;
+	if(!result){
+		return false;
+	}
+
+	colormarker #g_color_string,#g_color_bg,0,0;
+	while(result){
+		golinetop2;
+		if(!result){
+			break;
+		}
+		down ##interval_int;
+		if(!result){
+			break;
+		}
+		escape;
+		selectline;
+		colormarker #g_color_string,#g_color_bg,0,0;
+	}
+	return true;
+
+IniRead:
+	##value = getininum($g_ini_abs_filename, $g_ini_section, $g_ini_key);
+	if(##value < #g_ini_min_value){
+		return #g_ini_default_value;
+	}
+	return ##value;
+
+IniWrite:
+	##value = ##1;
+	writeininum $g_ini_abs_filename, $g_ini_section, $g_ini_key, ##value;
+	return result;
